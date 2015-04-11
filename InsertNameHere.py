@@ -49,6 +49,10 @@ def rotater(image, angle):
 	rot_image = rot_image.subsurface(rot_rect).copy()
 	return rot_image
 
+def checkColisionTirSol(sol_rect, tir_sprite):
+	for sprite in tir_sprite.sprites():
+		if sol_rect.colliderect(sprite.rect):
+			sprite.kill()
 
 # Jade (joueur)
 class Jade(pygame.sprite.Sprite):    
@@ -60,9 +64,6 @@ class Jade(pygame.sprite.Sprite):
 
 	def ajouterElement(self, element):
 		self.liste_elements.append(element)
-
-	def update(self, xCamera, yCamera):
-		self.rect.center = [SCREEN_WIDTH/2 + xCamera, SCREEN_HEIGHT/2 + yCamera]
 
 
 class Element():
@@ -81,11 +82,10 @@ class Tir(pygame.sprite.Sprite):
 		self.rect.center = [x, y]
 		self.direction = direction
 
-	def update(self, xCamera, yCamera):
+	def update(self):
 		self.checkHorsLimite()
 		direction = [v * self.element.vitesse for v in self.direction]
 		self.rect = self.rect.move(direction)
-		#self.rect.center = [self.rect[0] + xCamera, self.rect[1] + yCamera]
 		self.image = rotater(self.image, self.element.rotation * self.element.vitesse)
 		self.direction[1] += (self.element.poids/20)
 
@@ -103,16 +103,17 @@ def main_function():
 	clock = pygame.time.Clock()
 	pygame.key.set_repeat(1,1)
 
-	# Camera
-	xCamera = 0
-	yCamera = 0
-
 	# Objets de classe
-	background_image, background_rect = load_png('Background/bg1.png')
-	background_rect.move_ip(-160,-190)
 	jade = Jade()
 	jade_sprite = pygame.sprite.RenderClear(jade)
 	tir_sprite = pygame.sprite.RenderClear()
+
+	# Images
+	background_image, background_rect = load_png('Background/bg1.png')
+	sol_image, sol_rect = load_png('Decor/sol.png')
+
+	# Move_ip
+	sol_rect.move_ip(0, 540)
 
 	# Zone de test
 	jade.ajouterElement(Element('feu', 20.0, 1.0, 1.0))
@@ -122,10 +123,6 @@ def main_function():
 
 	while True:
 		clock.tick(60)
-
-		x, y = pygame.mouse.get_pos()
-		xCamera = ((SCREEN_WIDTH / 2.0) - x) / (2 + math.fabs(5.0 * ((SCREEN_WIDTH / 2.0) - x)/(SCREEN_WIDTH / 2.0)))
-		yCamera = ((SCREEN_HEIGHT / 2.0) - y) / (2 + math.fabs(5.0 * ((SCREEN_HEIGHT / 2.0) - y)/(SCREEN_HEIGHT / 2.0)))
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -137,12 +134,15 @@ def main_function():
 					tir = Tir(element, jade.rect.centerx, jade.rect.centery, direction)
 					tir_sprite.add(tir)
 
+		# Check colisions
+		checkColisionTirSol(sol_rect, tir_sprite)
+
 		# Updatage
-		jade_sprite.update(xCamera, yCamera)
-		tir_sprite.update(xCamera, yCamera)
+		tir_sprite.update()
 
 		# Blitage
-		screen.blit(background_image, (background_rect[0] + xCamera, background_rect[1] + yCamera))
+		screen.blit(background_image, background_rect)
+		screen.blit(sol_image, [sol_rect[0], sol_rect[1] - 20])
 
 		# Drawage
 		jade_sprite.draw(screen)
