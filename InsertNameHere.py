@@ -65,6 +65,7 @@ class Tir(pygame.sprite.Sprite):
 	def __init__(self, element, x, y, direction):
 		pygame.sprite.Sprite.__init__(self)
 		self.image, self.rect = load_png('Sprite/'+element.nom+'.png')
+		self.imageBase = self.image
 		self.element = element
 		self.rect.center = [x, y]
 		self.direction = direction
@@ -74,9 +75,24 @@ class Tir(pygame.sprite.Sprite):
 		direction = [v * self.element.vitesse for v in self.direction]
 		self.rect = self.rect.move(direction)
 
-		#vect = [0, 1]
+		vect = [0, 1]
 
-		#self.image = pygame.transform.rotate(self.image, angle(self.direction, vect))
+		Na = math.sqrt(pow(self.direction[0], 2) + pow(self.direction[1], 2));
+		Nb = math.sqrt(pow(vect[0], 2) + pow(vect[1], 2));
+		C = (self.direction[0] * self.direction[1] + vect[0] * vect[1]) / (Na * Nb);
+		S = (self.direction[0] * vect[1] - vect[0] * self.direction[1]);
+		if S < 0:
+			angle = -math.acos(C);
+		elif S == 0:
+			angle = 0;
+		else:
+			angle = math.acos(C);
+
+		angle = angle * (180/math.pi)
+		print(angle)
+
+		if angle < 60 and angle >= 0:
+			self.image = rot_center(self.imageBase, angle)
 
 		self.direction[1] += (self.element.poids/20)
 
@@ -84,6 +100,13 @@ class Tir(pygame.sprite.Sprite):
 		if(self.rect.top < -1000 or self.rect.bottom > 720 or self.rect.left < -300 or self.rect.right > 1580):
 			self.kill()
 
+def rot_center(image, angle):
+	orig_rect = image.get_rect()
+	rot_image = pygame.transform.rotate(image, angle)
+	rot_rect = orig_rect.copy()
+	rot_rect.center = rot_image.get_rect().center
+	rot_image = rot_image.subsurface(rot_rect).copy()
+	return rot_image
 
 def main_function():
 	
