@@ -41,6 +41,14 @@ def calculDirection(xA, yA, xB, yB):
 	direction = [vx/longueur, vy/longueur]
 	return direction
 
+def rotater(image, angle):
+	orig_rect = image.get_rect()
+	rot_image = pygame.transform.rotate(image, angle)
+	rot_rect = orig_rect.copy()
+	rot_rect.center = rot_image.get_rect().center
+	rot_image = rot_image.subsurface(rot_rect).copy()
+	return rot_image
+
 
 # Jade (joueur)
 class Jade(pygame.sprite.Sprite):    
@@ -53,60 +61,38 @@ class Jade(pygame.sprite.Sprite):
 	def ajouterElement(self, element):
 		self.liste_elements.append(element)
 
+	def update(self, xCamera, yCamera):
+		self.rect.center = [SCREEN_WIDTH/2 + xCamera, SCREEN_HEIGHT/2 + yCamera]
+
 
 class Element():
-	def __init__(self, nom, vitesse, poids):
+	def __init__(self, nom, vitesse, poids, rotation):
 		self.nom = nom
 		self.vitesse = vitesse
 		self.poids = poids
+		self.rotation = rotation
 
 
 class Tir(pygame.sprite.Sprite):
 	def __init__(self, element, x, y, direction):
 		pygame.sprite.Sprite.__init__(self)
 		self.image, self.rect = load_png('Sprite/'+element.nom+'.png')
-		self.imageBase = self.image
 		self.element = element
 		self.rect.center = [x, y]
 		self.direction = direction
 
-	def update(self):
+	def update(self, xCamera, yCamera):
 		self.checkHorsLimite()
 		direction = [v * self.element.vitesse for v in self.direction]
 		self.rect = self.rect.move(direction)
-
-		vect = [0, 1]
-
-		Na = math.sqrt(pow(self.direction[0], 2) + pow(self.direction[1], 2));
-		Nb = math.sqrt(pow(vect[0], 2) + pow(vect[1], 2));
-		C = (self.direction[0] * self.direction[1] + vect[0] * vect[1]) / (Na * Nb);
-		S = (self.direction[0] * vect[1] - vect[0] * self.direction[1]);
-		if S < 0:
-			angle = -math.acos(C);
-		elif S == 0:
-			angle = 0;
-		else:
-			angle = math.acos(C);
-
-		angle = angle * (180/math.pi)
-		print(angle)
-
-		if angle < 60 and angle >= 0:
-			self.image = rot_center(self.imageBase, angle)
-
+		#self.rect.center = [self.rect[0] + xCamera, self.rect[1] + yCamera]
+		self.image = rotater(self.image, self.element.rotation * self.element.vitesse)
 		self.direction[1] += (self.element.poids/20)
 
 	def checkHorsLimite(self):
 		if(self.rect.top < -1000 or self.rect.bottom > 720 or self.rect.left < -300 or self.rect.right > 1580):
 			self.kill()
 
-def rot_center(image, angle):
-	orig_rect = image.get_rect()
-	rot_image = pygame.transform.rotate(image, angle)
-	rot_rect = orig_rect.copy()
-	rot_rect.center = rot_image.get_rect().center
-	rot_image = rot_image.subsurface(rot_rect).copy()
-	return rot_image
 
 def main_function():
 	
@@ -117,20 +103,29 @@ def main_function():
 	clock = pygame.time.Clock()
 	pygame.key.set_repeat(1,1)
 
+	# Camera
+	xCamera = 0
+	yCamera = 0
+
 	# Objets de classe
 	background_image, background_rect = load_png('Background/bg1.png')
+	background_rect.move_ip(-160,-190)
 	jade = Jade()
 	jade_sprite = pygame.sprite.RenderClear(jade)
 	tir_sprite = pygame.sprite.RenderClear()
 
 	# Zone de test
-	jade.ajouterElement(Element('feu', 20.0, 1.0))
-	jade.ajouterElement(Element('feu', 10.0, 0.5))
-	jade.ajouterElement(Element('feu', 15.0, 0.2))
-	jade.ajouterElement(Element('feu', 5.0, 2.0))
+	jade.ajouterElement(Element('feu', 20.0, 1.0, 1.0))
+	jade.ajouterElement(Element('glace', 10.0, 0.5, 1.0))
+	jade.ajouterElement(Element('foudre', 15.0, 0.0, 2.0))
+	jade.ajouterElement(Element('roche', 5.0, 1.0, 1.0))
 
 	while True:
 		clock.tick(60)
+
+		x, y = pygame.mouse.get_pos()
+		xCamera = ((SCREEN_WIDTH / 2.0) - x) / (2 + math.fabs(5.0 * ((SCREEN_WIDTH / 2.0) - x)/(SCREEN_WIDTH / 2.0)))
+		yCamera = ((SCREEN_HEIGHT / 2.0) - y) / (2 + math.fabs(5.0 * ((SCREEN_HEIGHT / 2.0) - y)/(SCREEN_HEIGHT / 2.0)))
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -143,18 +138,19 @@ def main_function():
 					tir_sprite.add(tir)
 
 		# Updatage
-		tir_sprite.update()
+		jade_sprite.update(xCamera, yCamera)
+		tir_sprite.update(xCamera, yCamera)
 
 		# Blitage
-		screen.blit(background_image, background_rect)
+		screen.blit(background_image, (background_rect[0] + xCamera, background_rect[1] + yCamera))
 
 		# Drawage
 		jade_sprite.draw(screen)
 		tir_sprite.draw(screen)
 
 		# Infos
-		newFont, posFont = createFont(None,40,"Nombre d'elements : "+str(len(tir_sprite)),(0,0,0),(0,0))
-		screen.blit(newFont, posFont)
+		#newFont, posFont = createFont(None,40,"Nombre d'elements : "+str(len(tir_sprite)),(0,0,0),(0,0))
+		#screen.blit(newFont, posFont)
 
 
 		pygame.display.flip()
