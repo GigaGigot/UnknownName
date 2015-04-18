@@ -210,7 +210,7 @@ def main_function():
 
 		# Check colisions
 		checkColisionTirSol(sol_rect, tir_sprite)
-		tirs_ennemis_touche = pygame.sprite.groupcollide(tir_sprite, ennemi_sprite, True, False, pygame.sprite.collide_circle_ratio(0.5))
+		tirs_ennemis_touche = pygame.sprite.groupcollide(tir_sprite, ennemi_sprite, True, False, pygame.sprite.collide_circle_ratio(0.6))
 		dommagesEffectues(tirs_ennemis_touche)
 
 		# Spawn ennemis
